@@ -1,0 +1,17 @@
+# ScreenSnap API — Railway Deploy
+# https://railway.app/
+
+[build]
+builder = "nixpacks"
+buildCommand = "npm install"
+startCommand = "node index.js"
+
+[build.environment]
+NODE_VERSION = "20"
+
+[deploy]
+healthcheckPath = "/health"
+restartPolicyType = "always"
+
+[deploy.start]
+command = "node index.js"

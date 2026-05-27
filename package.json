@@ -1,0 +1,16 @@
+{
+  "name": "screensnap-api",
+  "version": "1.0.0",
+  "description": "Screenshot & HTML-to-PDF API as a Service",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node --watch index.js",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": ["screenshot", "api", "saas", "micro-saas"],
+  "author": "ScreenSnap",
+  "license": "MIT",
+  "dependencies": {
+  }
+}
