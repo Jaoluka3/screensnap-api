@@ -10,10 +10,11 @@ if (!TELEGRAM_TOKEN || !TELEGRAM_CHAT_ID) {
   process.exit(1);
 }
 
+const useMarkdown = !msg.includes('--') && !msg.includes('```');
 const data = JSON.stringify({
   chat_id: TELEGRAM_CHAT_ID,
   text: msg,
-  parse_mode: 'Markdown',
+  ...(useMarkdown ? { parse_mode: 'Markdown' } : {}),
   disable_web_page_preview: true
 });
 

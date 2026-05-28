@@ -5,6 +5,7 @@ const auth = require('./auth');
 const { takeScreenshot } = require('./screenshot');
 const stripe = require('./stripe');
 const { landing, loginPage, signupPage, docsPage, dashboardPage } = require('./templates');
+const { apiPlayground } = require('./playground');
 
 const PORT = parseInt(process.env.PORT || '3000');
 const DOMAIN = process.env.DOMAIN || `http://localhost:${PORT}`;
@@ -67,10 +68,21 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/dashboard' && method === 'GET') {
     const user = auth.authenticate(req);
     if (!user) return html(res, loginPage());
+    const data = db.load();
+    const u = data.users[user.userId];
     const usage = db.getUserUsage(user.userId);
     const limit = db.LIMITS[user.plan] || 100;
-    return html(res, dashboardPage({ ...user, apiKey: user.apiKey }, usage, limit));
+    const bonus = u.referralBonus || 0;
+    return html(res, dashboardPage({
+      ...user,
+      apiKey: user.apiKey,
+      referralBonus: bonus,
+      domain: DOMAIN,
+      userId: user.userId,
+    }, usage, limit + bonus));
   }
+
+  if (pathname === '/play' && method === 'GET') return html(res, apiPlayground());
 
   if (pathname === '/health' && method === 'GET') {
     return json(res, {
@@ -90,11 +102,22 @@ const server = http.createServer(async (req, res) => {
       ? await parseFormBody(req)
       : await readBody(req);
 
-    const { action, email, password, plan = 'free' } = body;
+    const { action, email, password, plan = 'free', ref } = body;
 
     try {
       if (action === 'signup') {
-        const result = auth.signup(email, password, plan);
+        const result = auth.signup(email, password, plan, ref);
+
+        // Notificar admin via Telegram
+        const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
+        const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+        if (TELEGRAM_TOKEN && TELEGRAM_CHAT_ID) {
+          const msg = `🎉 Novo cadastro!\nEmail: ${email}\nPlano: ${plan.toUpperCase()}\nAPI Key: ${result.api_key.substring(0, 12)}...`;
+          const https = require('https');
+          const d = JSON.stringify({ chat_id: TELEGRAM_CHAT_ID, text: msg });
+          const r = https.request({ hostname: 'api.telegram.org', path: `/bot${TELEGRAM_TOKEN}/sendMessage`, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(d) } });
+          r.write(d); r.end();
+        }
         if (contentType.includes('application/x-www-form-urlencoded')) {
           return html(res, `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Cadastro · ScreenSnap</title><style>${require('./templates').CSS}body{display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center;background:#09090b;color:#e4e4e7;font-family:-apple-system,sans-serif}.box{background:#18181b;border-radius:16px;padding:40px;width:100%;max-width:480px;border:1px solid #27272a}.key{background:#09090b;padding:16px;border-radius:8px;font-family:monospace;word-break:break-all;margin:16px 0;color:#06b6d4;font-size:.9em}.btn{display:inline-block;padding:14px 32px;border-radius:12px;font-weight:600;text-decoration:none;margin-top:16px}.btn-primary{background:linear-gradient(135deg,#a855f7,#7c3aed);color:#fff}h2{background:linear-gradient(135deg,#a855f7,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}</style></head><body><div class="box"><h2>Conta criada!</h2><p style="color:#a1a1aa;margin-top:8px">Guarde sua API Key:</p><div class="key">${result.api_key}</div><p style="color:#a1a1aa;font-size:.85em">Use no header <code>x-api-key</code></p><a href="/dashboard" class="btn btn-primary">Ir pro Dashboard</a><br><a href="/docs" style="color:#a855f7;font-size:.85em;margin-top:12px;display:inline-block">Ver documentação</a></div></body></html>`);
         }
