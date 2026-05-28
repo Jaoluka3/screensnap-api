@@ -35,7 +35,7 @@ except ImportError as e:
     print(json.dumps({"error": f"Dependência ausente: {e}. Rode: pip install mcp"}))
     sys.exit(1)
 
-HERMES_BIN = shutil.which("hermes") or "/usr/local/bin/hermes"
+HERMES_BIN = os.environ.get("HERMES_BIN") or shutil.which("hermes") or shutil.which("hermes.exe") or ""
 
 CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cache")
 os.makedirs(CACHE_DIR, exist_ok=True)
@@ -97,7 +97,7 @@ async def _safe_subprocess(cmd: list[str], timeout: int = 15, **kwargs) -> dict:
 
 def _check_binary() -> dict:
     if not HERMES_BIN:
-        return {"status": "error", "check": "binary", "message": "Hermes binary not found"}
+        return {"status": "error", "check": "binary", "message": "Hermes binary not found. Install with: npm install -g @anthropic-ai/hermes"}
     if not os.path.isfile(HERMES_BIN):
         return {"status": "error", "check": "binary", "message": f"Not a file: {HERMES_BIN}"}
     if not os.access(HERMES_BIN, os.X_OK):
