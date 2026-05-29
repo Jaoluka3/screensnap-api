@@ -330,11 +330,13 @@ const server = http.createServer(async (req, res) => {
   return json(res, { error: 'Not found' }, 404);
 });
 
-server.listen(PORT, () => {
-  console.log(`\n🔥 ScreenSnap API v1.1 · ${DOMAIN}`);
-  console.log(`💰 Planos: Free · Starter(R$49/mo | R$499/yr) · Pro(R$149/mo | R$1.499/yr)`);
-  console.log(`📊 Overage: R$${(db.OVERAGE_PRICE_CENTS / 100).toFixed(2)}/req extra`);
-  console.log(`🚀 Pronto!\n`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`\n🔥 ScreenSnap API v1.1 · ${DOMAIN}`);
+    console.log(`💰 Planos: Free · Starter(R$49/mo | R$499/yr) · Pro(R$149/mo | R$1.499/yr)`);
+    console.log(`📊 Overage: R$${(db.OVERAGE_PRICE_CENTS / 100).toFixed(2)}/req extra`);
+    console.log(`🚀 Pronto!\n`);
+  });
+}
 
 module.exports = { server, db, auth, takeScreenshot };

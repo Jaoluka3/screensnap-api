@@ -135,10 +135,14 @@ describe('HTTP Server', () => {
   let server;
   let testApiKey;
 
-  before(() => {
+  let testPort;
+
+  before(async () => {
     cleanTestData();
     const app = require('../index');
     server = app.server;
+    testPort = 3000;
+    await new Promise(r => server.listen(testPort, r));
   });
 
   after(() => {
@@ -150,7 +154,7 @@ describe('HTTP Server', () => {
     return new Promise((resolve, reject) => {
       const options = {
         hostname: 'localhost',
-        port: 3000,
+        port: testPort,
         path,
         method,
         headers: { ...opts.headers },
