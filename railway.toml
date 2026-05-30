@@ -3,15 +3,18 @@
 
 [build]
 builder = "nixpacks"
-buildCommand = "npm install"
 startCommand = "node index.js"
 
 [build.environment]
-NODE_VERSION = "20"
+NODE_VERSION = "22"
+PUPPETEER_SKIP_DOWNLOAD = "true"
 
 [deploy]
 healthcheckPath = "/health"
 restartPolicyType = "always"
+
+[deploy.variables]
+PUPPETEER_EXECUTABLE_PATH = "/usr/bin/chromium"
 
 [deploy.start]
 command = "node index.js"
