@@ -9,8 +9,8 @@ Transforme qualquer URL em screenshot ou PDF com uma chamada de API.
 | Plano | Preço | Limite | Anual | Extra |
 |-------|-------|--------|-------|-------|
 | Free | R$0 | 100/mês | - | - |
-| Starter | **R$49/mês** | 1.500/mês | **R$499/ano** (economize R$89) |
-| Pro | **R$149/mês** | 5.000/mês | **R$1.499/ano** (economize R$289) |
+| Starter | **R$79/mês** | 1.500/mês | **R$790/ano** (economize R$158) |
+| Pro | **R$199/mês** | 5.000/mês | **R$1.990/ano** (economize R$398) |
 | Overage | R$0,05/req | Ilimitado | - | Após limite mensal |
 
 ## 🚀 Deploy no Railway (5 minutos)
@@ -92,9 +92,9 @@ opensaas/
 
 | Cenário | Clientes | Receita/mês | Receita/dia |
 |---------|----------|-------------|-------------|
-| Meta | 7 Pro + 10 Starter | **R$1.543** | **~R$51** |
-| Stretch | 20 Pro | **R$2.980** | **~R$99** |
-| Ideal | 20 Pro + overage | **R$3.000+** | **R$100+** |
+| Meta | 10 Starter + 5 Pro | **R$1,785** | **~R$60** |
+| Stretch | 15 Starter + 10 Pro | **R$3,175** | **~R$106** |
+| Ideal | 20 Pro + overage | **R$4.000+** | **R$133+** |
 
 ## Licença
 

@@ -67,31 +67,31 @@ def _save_health_cache(status: str, details: dict, ttl: int = 300):
 # ── Safe Subprocess Helper ────────────────────────────────────────────
 
 async def _safe_subprocess(cmd: list[str], timeout: int = 15, **kwargs) -> dict:
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            **kwargs
-        )
-        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-        return {
-            "status": "ok" if proc.returncode == 0 else "error",
-            "exit_code": proc.returncode,
-            "stdout": stdout.decode("utf-8", errors="replace") if stdout else "",
-            "stderr": stderr.decode("utf-8", errors="replace") if stderr else "",
-        }
-    except asyncio.TimeoutError:
-        if proc and proc.returncode is None:
-            try:
-                proc.kill()
-            except Exception:
-                pass
-        return {"status": "timeout", "exit_code": None, "stdout": "", "stderr": "TIMEOUT"}
-    except OSError as e:
-        return {"status": "os_error", "exit_code": None, "stdout": "", "stderr": str(e)}
-    except Exception as e:
-        return {"status": "error", "exit_code": None, "stdout": "", "stderr": str(e)}
+    def _run():
+        try:
+            cwd = kwargs.pop("cwd", None)
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=cwd,
+            )
+            stdout, stderr = proc.communicate(timeout=timeout)
+            return {
+                "status": "ok" if proc.returncode == 0 else "error",
+                "exit_code": proc.returncode,
+                "stdout": stdout.decode("utf-8", errors="replace") if stdout else "",
+                "stderr": stderr.decode("utf-8", errors="replace") if stderr else "",
+            }
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
+            return {"status": "timeout", "exit_code": None, "stdout": "", "stderr": "TIMEOUT"}
+        except OSError as e:
+            return {"status": "os_error", "exit_code": None, "stdout": "", "stderr": str(e)}
+        except Exception as e:
+            return {"status": "error", "exit_code": None, "stdout": "", "stderr": str(e)}
+    return await asyncio.to_thread(_run)
 
 # ── Hermes Doctor ─────────────────────────────────────────────────────
 
@@ -117,7 +117,7 @@ async def _check_version() -> dict:
 
 async def _check_subprocess_env() -> dict:
     logger.info("Doctor: checking subprocess environment (PRoot/futex test)")
-    test_cmd = ["python3", "-c", "import sys; print(sys.version.split()[0])"]
+    test_cmd = [sys.executable, "-c", "import sys; print(sys.version.split()[0])"]
     result = await _safe_subprocess(test_cmd, timeout=15)
     return {
         "status": result["status"],
@@ -250,45 +250,38 @@ def build_prompt(task: str, context: str, toolsets: list[str]) -> str:
 
 
 async def _run_hermes_subprocess(cmd: list[str], workdir: str, timeout: int) -> dict:
-    start = time.time()
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            cwd=workdir,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-
+    def _run():
+        start = time.time()
         try:
-            stdout, stderr = await asyncio.wait_for(
-                proc.communicate(), timeout=timeout
+            proc = subprocess.Popen(
+                cmd,
+                cwd=workdir,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
             )
-        except asyncio.TimeoutError:
-            try:
-                proc.kill()
-            except Exception:
-                pass
+            stdout, stderr = proc.communicate(timeout=timeout)
+            elapsed = time.time() - start
+            stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
+            stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
+            return {
+                "status": "ok" if proc.returncode == 0 else "error",
+                "exit_code": proc.returncode,
+                "stdout": stdout_str,
+                "stderr": stderr_str,
+                "elapsed_seconds": round(elapsed, 1),
+            }
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.communicate()
             elapsed = time.time() - start
             return {"status": "timeout", "elapsed_seconds": round(elapsed)}
-
-        elapsed = time.time() - start
-        stdout_str = stdout.decode("utf-8", errors="replace") if stdout else ""
-        stderr_str = stderr.decode("utf-8", errors="replace") if stderr else ""
-
-        return {
-            "status": "ok" if proc.returncode == 0 else "error",
-            "exit_code": proc.returncode,
-            "stdout": stdout_str,
-            "stderr": stderr_str,
-            "elapsed_seconds": round(elapsed, 1),
-        }
-
-    except OSError as e:
-        elapsed = time.time() - start
-        return {"status": "os_error", "elapsed_seconds": round(elapsed, 1), "error": str(e)}
-    except Exception as e:
-        elapsed = time.time() - start
-        return {"status": "error", "elapsed_seconds": round(elapsed, 1), "error": str(e)}
+        except OSError as e:
+            elapsed = time.time() - start
+            return {"status": "os_error", "elapsed_seconds": round(elapsed, 1), "error": str(e)}
+        except Exception as e:
+            elapsed = time.time() - start
+            return {"status": "error", "elapsed_seconds": round(elapsed, 1), "error": str(e)}
+    return await asyncio.to_thread(_run)
 
 
 async def run_hermes(prompt: str, workdir: str, timeout: int) -> dict:

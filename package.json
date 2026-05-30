@@ -8,9 +8,15 @@
     "dev": "node --watch index.js",
     "test": "node --test test/*.test.js"
   },
-  "keywords": ["screenshot", "api", "saas", "micro-saas"],
+  "keywords": [
+    "screenshot",
+    "api",
+    "saas",
+    "micro-saas"
+  ],
   "author": "ScreenSnap",
   "license": "MIT",
   "dependencies": {
+    "puppeteer": "^25.1.0"
   }
 }
